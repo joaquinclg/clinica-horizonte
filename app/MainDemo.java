@@ -11,10 +11,14 @@ import domain.enums.Rol;
 import exceptions.CredencialesInvalidasException;
 import exceptions.EntidadNoEncontradaException;
 import exceptions.StockInsuficienteException;
-import repo.memory.InsumoInMemory;
-import repo.memory.MovimientoInMemory;
-import repo.memory.ServicioInMemory;
-import repo.memory.UsuarioInMemory;
+import repo.InsumoRepository;
+import repo.MovimientoRepository;
+import repo.ServicioRepository;
+import repo.UsuarioRepository;
+import repo.jdbc.InsumoJDBC;
+import repo.jdbc.MovimientoJDBC;
+import repo.jdbc.ServicioJDBC;
+import repo.jdbc.UsuarioJDBC;
 import usecase.AutenticacionService;
 import usecase.GestionUsuariosService;
 import usecase.ReportesService;
@@ -22,7 +26,6 @@ import usecase.StockService;
 
 /**
  * Clase principal de la aplicación Clínica Horizonte - Sistema de Gestión de Stock
- * Implementa un menú de consola interactivo para gestionar insumos médicos
  */
 public class MainDemo {
   // Servicios de la aplicación
@@ -48,22 +51,33 @@ public class MainDemo {
 
   /**
    * Inicializa todos los servicios y repositorios de la aplicación
+   * Usa repositorios JDBC para persistencia en base de datos MySQL
    */
   private static void inicializarServicios() {
-    // Inicializar repositorios en memoria (en la 4ta entrega serán repositorios JDBC)
-    UsuarioInMemory usuariosRepo = new UsuarioInMemory();
-    ServicioInMemory serviciosRepo = new ServicioInMemory();
-    InsumoInMemory insumosRepo = new InsumoInMemory();
-    MovimientoInMemory movRepo = new MovimientoInMemory();
+    try {
+      // Inicializar repositorios JDBC (conexión a MySQL)
+      UsuarioRepository usuariosRepo = new UsuarioJDBC();
+      ServicioRepository serviciosRepo = new ServicioJDBC();
+      InsumoRepository insumosRepo = new InsumoJDBC();
+      
+      // MovimientoJDBC necesita otros repositorios para cargar relaciones
+      MovimientoRepository movRepo = new MovimientoJDBC(insumosRepo, usuariosRepo, serviciosRepo);
 
-    // Inicializar servicios de la capa de casos de uso
-    authService = new AutenticacionService(usuariosRepo);
-    userService = new GestionUsuariosService(usuariosRepo);
-    stockService = new StockService(insumosRepo, movRepo, serviciosRepo);
-    reportService = new ReportesService(movRepo);
+      // Inicializar servicios de la capa de casos de uso
+      authService = new AutenticacionService(usuariosRepo);
+      userService = new GestionUsuariosService(usuariosRepo);
+      stockService = new StockService(insumosRepo, movRepo, serviciosRepo);
+      reportService = new ReportesService(movRepo);
 
-    // Inicializar scanner para entrada de usuario
-    scanner = new Scanner(System.in);
+      // Inicializar scanner para entrada de usuario
+      scanner = new Scanner(System.in);
+      
+      System.out.println("Conexión a base de datos establecida correctamente");
+    } catch (Exception e) {
+      System.err.println("Error al inicializar servicios: " + e.getMessage());
+      e.printStackTrace();
+      throw new RuntimeException("No se pudo inicializar la aplicación", e);
+    }
   }
 
   /**
@@ -143,9 +157,7 @@ public class MainDemo {
    */
   private static Usuario realizarLogin() {
     System.out.println("\n== Login ==");
-    System.out.println("Usuarios de prueba:");
-    System.out.println("  - 1000 / admin123 (ADMIN)");
-    System.out.println("  - 2000 / aux123 (AUXILIAR)");
+    System.out.println("Ingrese sus credenciales (datos desde base de datos)");
     
     try {
       int legajo = leerEntero("Legajo: ");
@@ -229,7 +241,6 @@ public class MainDemo {
    */
   private static void manejarIngresoInsumo(Usuario actor) {
     System.out.println("\n-- Ingreso de Insumo --");
-    System.out.println("Insumos disponibles: GAS-01, GUA-01, BAR-01");
     
     System.out.print("Código del insumo: ");
     String codigo = scanner.nextLine().toUpperCase();
@@ -244,20 +255,37 @@ public class MainDemo {
    */
   private static void manejarEgresoInsumo(Usuario actor) {
     System.out.println("\n-- Egreso de Insumo --");
-    System.out.println("Insumos disponibles: GAS-01, GUA-01, BAR-01");
     
     System.out.print("Código del insumo: ");
     String codigo = scanner.nextLine().toUpperCase();
     int cantidad = leerEntero("Cantidad a retirar: ");
     
-    System.out.println("\nServicios disponibles:");
-    System.out.println("  1 - Guardia");
-    System.out.println("  2 - Internación");
-    System.out.println("  3 - Quirófano");
-    System.out.println("  4 - Consultorios");
-    int servicioId = leerEntero("Servicio ID: ");
+    // Obtener servicios reales de la base de datos
+    var serviciosList = new ArrayList<>(stockService.obtenerTodosLosServicios());
     
-    stockService.registrarEgreso(codigo, cantidad, servicioId, actor);
+    if (serviciosList.isEmpty()) {
+      System.out.println("Error: No hay servicios disponibles en la base de datos.");
+      return;
+    }
+    
+    // Mostrar servicios numerados secuencialmente (1, 2, 3...)
+    System.out.println("\nServicios disponibles:");
+    for (int i = 0; i < serviciosList.size(); i++) {
+      System.out.printf("  %d - %s%n", i + 1, serviciosList.get(i).getNombre());
+    }
+    
+    int opcionVisual = leerEntero("Servicio (número): ");
+    
+    // Validar que la opción esté en rango
+    if (opcionVisual < 1 || opcionVisual > serviciosList.size()) {
+      System.out.println("Error: Opción inválida. Debe estar entre 1 y " + serviciosList.size());
+      return;
+    }
+    
+    // Obtener el ID real del servicio seleccionado
+    int servicioIdReal = serviciosList.get(opcionVisual - 1).getId();
+    
+    stockService.registrarEgreso(codigo, cantidad, servicioIdReal, actor);
     System.out.println("Egreso registrado exitosamente.");
   }
 
@@ -323,16 +351,33 @@ public class MainDemo {
     
     int dias = leerEntero("Días hacia atrás (ej. 30): ");
     
+    // Obtener servicios reales de la base de datos
+    var serviciosList = new ArrayList<>(stockService.obtenerTodosLosServicios());
+    
     System.out.println("\nFiltrar por servicio:");
     System.out.println("  0 - Todos");
-    System.out.println("  1 - Guardia");
-    System.out.println("  2 - Internación");
-    System.out.println("  3 - Quirófano");
-    System.out.println("  4 - Consultorios");
-    int srvId = leerEntero("Servicio ID: ");
+    if (!serviciosList.isEmpty()) {
+      // Mostrar servicios numerados secuencialmente (1, 2, 3...)
+      for (int i = 0; i < serviciosList.size(); i++) {
+        System.out.printf("  %d - %s%n", i + 1, serviciosList.get(i).getNombre());
+      }
+    } else {
+      System.out.println("  (No hay servicios disponibles)");
+    }
+    
+    int opcionVisual = leerEntero("Servicio (número): ");
     
     LocalDate hoy = LocalDate.now();
-    Integer srvFiltro = (srvId == 0 ? null : srvId);
+    Integer srvFiltro = null;
+    
+    // Si no es "0 - Todos", convertir el número visual al ID real
+    if (opcionVisual != 0) {
+      if (opcionVisual < 1 || opcionVisual > serviciosList.size()) {
+        System.out.println("Error: Opción inválida. Debe estar entre 0 y " + serviciosList.size());
+        return;
+      }
+      srvFiltro = serviciosList.get(opcionVisual - 1).getId();
+    }
     
     var lista = reportService.movimientosPorPeriodoYServicio(
         hoy.minusDays(dias), hoy, srvFiltro);
