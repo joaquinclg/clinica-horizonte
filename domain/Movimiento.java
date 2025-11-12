@@ -14,14 +14,36 @@ public class Movimiento {
 
   public Movimiento(int id, TipoMovimiento tipo, LocalDateTime fecha, int cantidad,
       Usuario usuario, Insumo insumo, Servicio servicio) {
-    this.id = id;
-    this.tipo = tipo;
-    this.fecha = fecha;
-    this.cantidad = cantidad;
-    this.usuario = usuario;
-    this.insumo = insumo;
-    this.servicio = servicio;
+  
+  if (tipo == null) {
+    throw new IllegalArgumentException("El tipo de movimiento es requerido");
   }
+  if (cantidad <= 0) {
+    throw new IllegalArgumentException("La cantidad debe ser positiva");
+  }
+  if (usuario == null) {
+    throw new IllegalArgumentException("El usuario es requerido");
+  }
+  if (insumo == null) {
+    throw new IllegalArgumentException("El insumo es requerido");
+  }
+  
+  // Regla de negocio: INGRESO sin servicio, EGRESO con servicio
+  if (tipo == TipoMovimiento.INGRESO && servicio != null) {
+    throw new IllegalArgumentException("Los movimientos de tipo INGRESO no pueden tener servicio");
+  }
+  if (tipo == TipoMovimiento.EGRESO && servicio == null) {
+    throw new IllegalArgumentException("Los movimientos de tipo EGRESO deben tener un servicio");
+  }
+  
+  this.id = id;
+  this.tipo = tipo;
+  this.fecha = fecha;
+  this.cantidad = cantidad;
+  this.usuario = usuario;
+  this.insumo = insumo;
+  this.servicio = servicio;
+}
 
   public int getId() {
     return id;

@@ -70,6 +70,32 @@ CREATE TABLE movimientos (
        OR (tipo='EGRESO'  AND servicio_id IS NOT NULL) )
 ) ENGINE=InnoDB;
 
+-- tabla movimientos para compatibilidad con beekeeper
+DROP TABLE IF EXISTS movimientos;
+CREATE TABLE movimientos (
+  id             BIGINT        NOT NULL AUTO_INCREMENT,
+  tipo           ENUM('INGRESO','EGRESO') NOT NULL,
+  fecha          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  cantidad       INT UNSIGNED  NOT NULL,
+  usuario_legajo INT           NOT NULL,
+  insumo_codigo  VARCHAR(30)   NOT NULL,
+  servicio_id    INT           NULL,
+  PRIMARY KEY (id),
+  KEY ix_mov_fecha    (fecha),
+  KEY ix_mov_insumo   (insumo_codigo),
+  KEY ix_mov_serv     (servicio_id),
+  CONSTRAINT fk_mov_usuario  FOREIGN KEY (usuario_legajo)
+      REFERENCES usuarios(legajo)
+      ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_mov_insumo   FOREIGN KEY (insumo_codigo)
+      REFERENCES insumos(codigo)
+      ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_mov_servicio FOREIGN KEY (servicio_id)
+      REFERENCES servicios(id)
+      ON UPDATE CASCADE ON DELETE RESTRICT,
+  CHECK (cantidad > 0)
+) ENGINE=InnoDB;
+
 -- inserciones
 
 INSERT INTO usuarios (legajo, password, nombre, apellido, rol, activo)
