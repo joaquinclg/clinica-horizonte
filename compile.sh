@@ -24,9 +24,30 @@ find . -name "*.java" -not -path "*/bin/*" > sources.txt
 NUM_FILES=$(wc -l < sources.txt)
 echo "Encontrados $NUM_FILES archivos .java"
 
-# Compilar
+# Buscar el driver de MySQL (cualquier versión)
+MYSQL_DRIVER=$(find lib -name "mysql-connector-j-*.jar" 2>/dev/null | head -n 1)
+
+if [ -z "$MYSQL_DRIVER" ]; then
+    echo -e "${RED}⚠ Advertencia: No se encuentra el driver de MySQL${NC}"
+    echo "  Descárgalo desde: https://dev.mysql.com/downloads/connector/j/"
+    echo "  Guárdalo en: lib/mysql-connector-j-*.jar"
+    read -p "¿Continuar compilando sin el driver? (s/n): " respuesta
+    if [ "$respuesta" != "s" ]; then
+        rm sources.txt
+        exit 1
+    fi
+    MYSQL_DRIVER=""
+else
+    echo "✓ Driver encontrado: $(basename $MYSQL_DRIVER)"
+fi
+
+# Compilar (incluir driver en classpath si existe)
 echo "Compilando..."
-javac -d bin --release 17 @sources.txt
+if [ -n "$MYSQL_DRIVER" ]; then
+    javac -d bin --release 17 -cp "$MYSQL_DRIVER" @sources.txt
+else
+    javac -d bin --release 17 @sources.txt
+fi
 
 # Verificar resultado
 if [ $? -eq 0 ]; then
@@ -43,4 +64,3 @@ else
     rm sources.txt
     exit 1
 fi
-

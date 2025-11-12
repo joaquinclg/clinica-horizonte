@@ -1,5 +1,6 @@
 package usecase;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.List;
@@ -10,11 +11,13 @@ import domain.Insumo;
 import domain.Movimiento;
 import domain.Servicio;
 import domain.enums.TipoMovimiento;
+import exceptions.DatabaseException;
 import exceptions.EntidadNoEncontradaException;
 import exceptions.StockInsuficienteException;
 import repo.InsumoRepository;
 import repo.MovimientoRepository;
 import repo.ServicioRepository;
+import repo.jdbc.TransactionManager;
 
 public class StockService {
   private final InsumoRepository insumos;
@@ -51,15 +54,27 @@ public class StockService {
 
     ins.aumentar(cant);
 
+    // Iniciar transacción para operaciones atómicas
     try {
+      TransactionManager.beginTransaction();
+      
       // Actualizar stock
       insumos.update(ins);
 
       // Registrar movimiento
       Movimiento mov = new Movimiento(0, TipoMovimiento.INGRESO, LocalDateTime.now(), cant, actor, ins, null);
       movimientos.save(mov);
+      
+      // Confirmar transacción
+      TransactionManager.commit();
+      
+    } catch (SQLException e) {
+      // Revertir transacción en caso de error
+      TransactionManager.rollback();
+      throw new DatabaseException("Error al registrar el ingreso", e);
     } catch (Exception e) {
-      // En el futuro, con JDBC, aquí manejaríamos el rollback de la transacción
+      // Revertir transacción en caso de error
+      TransactionManager.rollback();
       throw new RuntimeException("Error al registrar el ingreso", e);
     }
   }
@@ -93,7 +108,10 @@ public class StockService {
       throw new StockInsuficienteException("Stock insuficiente. Disponible: " + ins.getStock());
     }
 
+    // Iniciar transacción para operaciones atómicas
     try {
+      TransactionManager.beginTransaction();
+      
       // Actualizar stock
       ins.disminuir(cant);
       insumos.update(ins);
@@ -102,13 +120,22 @@ public class StockService {
       Movimiento mov = new Movimiento(0, TipoMovimiento.EGRESO, LocalDateTime.now(), cant, actor, ins, srv);
       movimientos.save(mov);
 
-      // Verificar si quedó en nivel crítico
+      // Confirmar transacción
+      TransactionManager.commit();
+
+      // Verificar si quedó en nivel crítico (después del commit)
       if (ins.esCritico()) {
         // Aquí podríamos agregar lógica para notificar stock crítico
         System.out.println("¡ALERTA! Stock crítico en " + ins.getNombre());
       }
+      
+    } catch (SQLException e) {
+      // Revertir transacción en caso de error
+      TransactionManager.rollback();
+      throw new DatabaseException("Error al registrar el egreso", e);
     } catch (Exception e) {
-      // En el futuro, con JDBC, aquí manejaríamos el rollback de la transacción
+      // Revertir transacción en caso de error
+      TransactionManager.rollback();
       throw new RuntimeException("Error al registrar el egreso", e);
     }
   }
@@ -157,5 +184,14 @@ public class StockService {
     return insumos.findByCodigo(codigo)
         .map(i -> i.getStock() >= cantidad)
         .orElse(false);
+  }
+
+  /**
+   * Obtiene la lista de todos los servicios registrados
+   * 
+   * @return Lista de todos los servicios
+   */
+  public List<Servicio> obtenerTodosLosServicios() {
+    return servicios.findAll();
   }
 }

@@ -27,8 +27,20 @@ if [ ! -f "bin/app/MainDemo.class" ]; then
     exit 1
 fi
 
-# Ejecutar
+# Buscar el driver de MySQL (cualquier versión)
+MYSQL_DRIVER=$(find lib -name "mysql-connector-j-*.jar" 2>/dev/null | head -n 1)
+
+if [ -z "$MYSQL_DRIVER" ]; then
+    echo -e "${RED}✗ Error: No se encuentra el driver de MySQL${NC}"
+    echo "  No se encontró ningún archivo mysql-connector-j-*.jar en lib/"
+    echo ""
+    echo "  Descárgalo desde: https://dev.mysql.com/downloads/connector/j/"
+    exit 1
+fi
+
+echo "✓ Driver encontrado: $(basename $MYSQL_DRIVER)"
+
+# Ejecutar (incluir driver en classpath)
 echo -e "${GREEN}Iniciando aplicación...${NC}"
 echo ""
-java -cp bin app.MainDemo
-
+java -cp "bin:$MYSQL_DRIVER" app.MainDemo
