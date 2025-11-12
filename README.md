@@ -2,6 +2,20 @@
 
 Sistema de gestión y seguimiento del stock de insumos médicos para la Clínica Horizonte. Implementado en Java como parte del Seminario de Práctica 1.
 
+## 📄 Documentación Completa
+
+**Toda la información detallada del sistema se encuentra en el archivo `INFORME.pdf`**, incluyendo:
+
+- Objetivos del sistema
+- Límites y alcances
+- Diagramas (clases, entidad-relación, casos de uso)
+- Requerimientos funcionales y no funcionales
+- Análisis y diseño
+- Etapas del desarrollo
+- Y demás documentación del proyecto
+
+Este README contiene información técnica sobre la implementación, instalación y uso del sistema.
+
 ## Descripción
 
 Sistema de gestión de stock de insumos médicos que permite:
@@ -14,14 +28,14 @@ Sistema de gestión de stock de insumos médicos que permite:
 
 ## Arquitectura
 
-El proyecto sigue una arquitectura en capas:
+El proyecto sigue una arquitectura en capas con persistencia en base de datos MySQL:
 
 ```
 clinica-horizonte/
 ├── app/            # Capa de presentación
 │   ├── handlers/   # Manejadores de operaciones
 │   │   └── OperacionesHandler.java
-│   ├── ui/        # Interfaz de usuario
+│   ├── ui/         # Interfaz de usuario
 │   │   ├── ConsoleUI.java
 │   │   └── MenuPrincipal.java
 │   └── MainDemo.java
@@ -34,7 +48,14 @@ clinica-horizonte/
 │   ├── Movimiento.java
 │   └── Servicio.java
 ├── repo/           # Capa de persistencia
-│   ├── memory/     # Implementaciones en memoria (actual)
+│   ├── jdbc/       # Implementaciones JDBC (MySQL)
+│   │   ├── DatabaseConnection.java
+│   │   ├── TransactionManager.java
+│   │   ├── UsuarioJDBC.java
+│   │   ├── InsumoJDBC.java
+│   │   ├── MovimientoJDBC.java
+│   │   └── ServicioJDBC.java
+│   ├── memory/     # Implementaciones en memoria (legacy)
 │   │   ├── UsuarioInMemory.java
 │   │   ├── InsumoInMemory.java
 │   │   ├── MovimientoInMemory.java
@@ -51,7 +72,11 @@ clinica-horizonte/
 ├── exceptions/     # Excepciones personalizadas
 │   ├── CredencialesInvalidasException.java
 │   ├── StockInsuficienteException.java
-│   └── EntidadNoEncontradaException.java
+│   ├── EntidadNoEncontradaException.java
+│   └── DatabaseException.java
+├── lib/            # Librerías externas
+│   └── mysql-connector-j-*.jar  # Driver de MySQL
+├── clinica_horizonte.sql  # Script de creación de BD
 ├── compile.sh      # Script de compilación
 └── run.sh          # Script de ejecución
 ```
@@ -68,10 +93,15 @@ clinica-horizonte/
 - **Abstracción**: Clase abstracta `Persona`, interfaces de repositorios
 - **Menú de selección interactivo** con múltiples opciones
 - **Estructuras condicionales** (if-else, switch)
-- **Estructuras repetitivas** (while, for-each)
+- **Estructuras repetitivas** (while, for-each, for tradicional)
 - **Declaración y creación de objetos** con constructores
 - **Algoritmos de ordenación**: `Comparator.comparing()`, `sort()`
 - **Algoritmos de búsqueda**: Búsqueda por código, nombre, filtros múltiples
+- **Uso de ArrayList**: Para almacenar resultados de consultas y parámetros dinámicos
+- **Uso de arreglos**: Parámetros de PreparedStatement en operaciones JDBC
+- **Persistencia con JDBC**: Conexión a base de datos MySQL
+- **Transacciones**: Manejo de transacciones para operaciones atómicas
+- **Reflexión**: Para establecer campos privados (id, creadoEn)
 
 ### Seguridad y Control de Acceso
 
@@ -97,70 +127,109 @@ clinica-horizonte/
 
 ## Patrones de Diseño Implementados
 
-1. **Repository Pattern**: Abstracción del acceso a datos
-2. **Service Layer Pattern**: Lógica de negocio separada
+1. **Repository Pattern**: Abstracción del acceso a datos (JDBC y memoria)
+2. **Service Layer Pattern**: Lógica de negocio separada de persistencia
 3. **Dependency Injection**: Inyección de dependencias por constructor
 4. **Strategy Pattern**: Interfaces implementables de repositorios
 5. **Factory Pattern**: Inicialización centralizada de servicios
+6. **Transaction Manager Pattern**: Gestión centralizada de transacciones
+7. **DAO Pattern**: Data Access Object en repositorios JDBC
 
 ## Requisitos del Sistema
 
 - **Java 17 o superior** (LTS recomendado)
 - JDK instalado y configurado
 - Variable de entorno `JAVA_HOME` configurada
+- **MySQL 8.0 o superior** (o MariaDB compatible)
+- **Driver de MySQL Connector/J**
 
 ## Instalación y Ejecución
 
-### Opción 1: Usando Scripts
+### 1. Configurar Base de Datos MySQL
+
+Primero, crea la base de datos y las tablas:
 
 ```bash
-# 1. Navegar al directorio del proyecto
-cd /path/to/clinica-horizonte
+mysql -u root -p < clinica_horizonte.sql
+```
 
-# 2. Dar permisos de ejecución a los scripts
+### 2. Configurar Credenciales de Base de Datos
+
+Edita el archivo `repo/jdbc/DatabaseConnection.java` y actualiza las credenciales:
+
+```java
+private static final String URL = "jdbc:mysql://localhost:3306/clinica_horizonte";
+private static final String USER = "root";        // Tu usuario MySQL
+private static final String PASSWORD = "password"; // Tu contraseña MySQL
+```
+
+### 3. Descargar Driver de MySQL
+
+El driver es necesario para la conexión JDBC.
+
+1. Ve a: https://dev.mysql.com/downloads/connector/j/
+2. Descarga el archivo ZIP "Platform Independent"
+3. Extrae el ZIP y copia el archivo `.jar` a la carpeta `lib/`
+
+### 4. Compilar y Ejecutar
+
+**Usando Scripts (Recomendado):**
+
+```bash
+# 1. Dar permisos de ejecución
 chmod +x compile.sh run.sh
 
-# 3. Compilar usando el script
+# 2. Compilar
 ./compile.sh
 
-# 4. Ejecutar la aplicación
+# 3. Ejecutar
 ./run.sh
 ```
 
-### Opción 2: Desde la Terminal (Linux/Mac)
+### 5. Cargar Datos de Prueba
 
-```bash
-# Compilar
-find . -name "*.java" > sources.txt
-javac -d build @sources.txt
+Si quieres datos de prueba, ejecuta las inserciones que se encuentran en el archivo `clinica_horizonte.sql`:
 
-# Ejecutar
-java -cp build app.MainDemo
-```
+## Persistencia con JDBC
 
-## Usuarios de Prueba
+El sistema utiliza **JDBC** para persistir datos en MySQL. Características implementadas:
 
-El sistema incluye usuarios precargados:
+### Repositorios JDBC
+
+- **UsuarioJDBC**: Gestión de usuarios con validaciones
+- **InsumoJDBC**: CRUD completo de insumos con búsquedas
+- **ServicioJDBC**: Gestión de servicios médicos
+- **MovimientoJDBC**: Registro de movimientos con relaciones
+
+### Transacciones
+
+Las operaciones críticas utilizan transacciones para garantizar atomicidad:
+
+- **`registrarIngreso()`**: Actualiza stock + crea movimiento (transacción)
+- **`registrarEgreso()`**: Actualiza stock + crea movimiento (transacción)
+
+Si alguna operación falla, se hace rollback automático.
+
+### Uso de ArrayList y Arreglos
+
+- **ArrayList**: Para almacenar resultados de consultas (`findAll()`, `findCriticos()`, etc.)
+- **Arreglos**: Parámetros de `PreparedStatement` en operaciones INSERT/UPDATE
+- **ArrayList dinámico**: Para construir consultas SQL con parámetros variables
+
+### Manejo de Excepciones
+
+- **`DatabaseException`**: Excepción personalizada para errores de BD
+- Manejo de `SQLException` con mensajes descriptivos
+- Validación de integridad referencial
+
+## Datos de Prueba
+
+### Usuarios Precargados
 
 | Legajo | Password | Rol      | Descripción          |
 | ------ | -------- | -------- | -------------------- |
 | 1000   | admin123 | ADMIN    | Acceso completo      |
 | 2000   | aux123   | AUXILIAR | Operaciones de stock |
-
-## Insumos Precargados
-
-| Código | Nombre               | Stock | Stock Mínimo |
-| ------ | -------------------- | ----- | ------------ |
-| GAS-01 | Gasas estériles      | 50    | 10           |
-| GUA-01 | Guantes descartables | 40    | 15           |
-| BAR-01 | Barbijos quirúrgicos | 25    | 20           |
-
-## Servicios Disponibles
-
-1. **Guardia** - Atención de urgencias
-2. **Internación** - Pacientes hospitalizados
-3. **Quirófano** - Cirugías
-4. **Consultorios** - Atención ambulatoria
 
 ## Uso del Sistema
 
@@ -186,83 +255,20 @@ Password: admin123
 0) Salir
 ```
 
-### 3. Ejemplos de Operaciones
+## Tecnologías Utilizadas
 
-#### Listar Todos los Insumos
+- **Java 17**: Lenguaje de programación
+- **JDBC**: API para acceso a bases de datos
+- **MySQL (9.0.1 docker linux y xampp windows)+**: Sistema de gestión de bases de datos relacional
+- **MySQL Connector/J**: Driver JDBC para MySQL
+- **Bash Scripts**: Scripts de automatización para compilación y ejecución
 
-```
--- Listado de Todos los Insumos --
-─────────────────────────────────────────────────────────────────
-Código     Nombre                         Unidad     Stock      Mínimo
-─────────────────────────────────────────────────────────────────
-BAR-01     Barbijos quirúrgicos           caja       15         20         ⚠️ CRÍTICO
-GAS-01     Gasas estériles                paquete    50         10
-GUA-01     Guantes descartables           caja       40         15
-─────────────────────────────────────────────────────────────────
-Total de insumos: 3 | Críticos: 1
-```
+## Contribuciones
 
-#### Registrar Ingreso de Insumo
+Este proyecto fue desarrollado como parte del Seminario de Práctica 1, implementando:
 
-```
-Código del insumo: GAS-01
-Cantidad a ingresar: 20
-```
-
-#### Registrar Egreso de Insumo
-
-```
-Código del insumo: GAS-01
-Cantidad a retirar: 5
-Servicio ID: 1 (Guardia)
-```
-
-#### Crear Nuevo Usuario (Solo ADMIN)
-
-```
-Legajo: 3000
-Nombre: María
-Apellido: López
-Password: maria123
-Rol: AUXILIAR
-```
-
-## Modelo de Datos
-
-### Diagrama de Clases Principales
-
-```
-Persona (abstract)
-    ↑
-    |
-Usuario
-    ├── legajo: int (PK)
-    ├── password: String
-    ├── nombre: String
-    ├── apellido: String
-    ├── rol: Rol (ENUM)
-    ├── activo: boolean
-    └── creadoEn: LocalDateTime
-
-Insumo
-    ├── codigo: String (PK)
-    ├── nombre: String
-    ├── unidad: String
-    ├── stock: int
-    ├── stockMinimo: int
-    ├── estado: EstadoInsumo (ENUM)
-    └── fechaVencimiento: LocalDate
-
-Movimiento
-    ├── id: int (PK)
-    ├── tipo: TipoMovimiento (ENUM)
-    ├── fecha: LocalDateTime
-    ├── cantidad: int
-    ├── usuario: Usuario (FK)
-    ├── insumo: Insumo (FK)
-    └── servicio: Servicio (FK, nullable)
-
-Servicio
-    ├── id: int (PK)
-    └── nombre: String
-```
+- Arquitectura en capas
+- Persistencia con JDBC
+- Manejo de transacciones
+- Validaciones de negocio
+- Interfaz de consola interactiva
