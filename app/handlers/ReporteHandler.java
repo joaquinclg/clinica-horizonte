@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import app.ui.ConsoleUI;
 import app.ui.MenuPrincipal;
 import domain.Movimiento;
+import domain.Usuario;
+import domain.enums.Rol;
 import usecase.ReportesService;
 import usecase.StockService;
 
@@ -22,9 +24,13 @@ public class ReporteHandler {
   }
 
   /**
-   * Genera y muestra el reporte de movimientos
+   * Genera y muestra el reporte de movimientos (solo ADMIN)
    */
-  public void reporteMovimientos() {
+  public void reporteMovimientos(Usuario actor) {
+    if (actor.getRol() != Rol.ADMIN) {
+      ConsoleUI.mostrarError("Acceso denegado: Solo usuarios ADMIN pueden generar reportes.");
+      return;
+    }
     ConsoleUI.mostrarInfo("\n-- Reporte de Movimientos --");
     
     int dias = ConsoleUI.leerEntero(MenuPrincipal.PROMPT_DIAS);

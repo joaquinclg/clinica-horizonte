@@ -128,7 +128,7 @@ public class MainDemo {
             stockHandler.listarCriticos();
             break;
           case 9:
-            reporteHandler.reporteMovimientos();
+            reporteHandler.reporteMovimientos(usuarioLogueado);
             break;
           case 10:
             usuarioLogueado = null;

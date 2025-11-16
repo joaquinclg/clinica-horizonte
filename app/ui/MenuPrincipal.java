@@ -13,7 +13,7 @@ public class MenuPrincipal {
       "6) Egreso de insumo\n" +
       "7) Listar todos los insumos\n" +
       "8) Listar insumos críticos\n" +
-      "9) Reporte de movimientos\n" +
+      "9) Reporte de movimientos (ADMIN)\n" +
       "10) Logout\n" +
       "0) Salir";
 
