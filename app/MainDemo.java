@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.Scanner;
 
 import domain.Insumo;
+import domain.Movimiento;
 import domain.Usuario;
 import domain.enums.Rol;
 import exceptions.CredencialesInvalidasException;
@@ -526,13 +527,23 @@ public class MainDemo {
     } else {
       System.out.printf("\nMovimientos desde %s hasta %s%n", hoy.minusDays(dias), hoy);
       System.out.println("-------------------------------------------------------");
-      lista.forEach(m -> System.out.printf("#%d | %s | %s x%d | %s | %s%n",
-          m.getId(),
-          m.getTipo(),
-          m.getInsumo().getCodigo(),
-          m.getCantidad(),
-          (m.getServicio() == null ? "N/A" : m.getServicio().getNombre()),
-          m.getFecha()));
+      // Numeración secuencial desde 1 (no el ID de la base de datos)
+      int numeroSecuencial = 1;
+      for (Movimiento m : lista) {
+        // Formatear fecha para mostrar solo día, mes y año
+        String fechaFormateada = m.getFecha().toLocalDate().format(
+            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        
+        System.out.printf("#%d | Tipo: %s | Insumo: %s x%d | Servicio: %s | Legajo: %d | Fecha: %s%n",
+            numeroSecuencial,
+            m.getTipo(),
+            m.getInsumo().getCodigo(),
+            m.getCantidad(),
+            (m.getServicio() == null ? "N/A" : m.getServicio().getNombre()),
+            m.getUsuario().getLegajo(),
+            fechaFormateada);
+        numeroSecuencial++;
+      }
     }
   }
 
