@@ -33,12 +33,15 @@ El proyecto sigue una arquitectura en capas con persistencia en base de datos My
 ```
 clinica-horizonte/
 ├── app/            # Capa de presentación
-│   ├── handlers/   # Manejadores de operaciones
-│   │   └── OperacionesHandler.java
+│   ├── handlers/   # Manejadores de operaciones (separados por dominio)
+│   │   ├── AuthHandler.java        # Autenticación y login
+│   │   ├── UsuarioHandler.java     # Gestión de usuarios (CRUD)
+│   │   ├── StockHandler.java       # Operaciones de stock e insumos
+│   │   └── ReporteHandler.java    # Generación de reportes
 │   ├── ui/         # Interfaz de usuario
-│   │   ├── ConsoleUI.java
-│   │   └── MenuPrincipal.java
-│   └── MainDemo.java
+│   │   ├── ConsoleUI.java          # Utilidades de entrada/salida
+│   │   └── MenuPrincipal.java     # Constantes del menú
+│   └── MainDemo.java              # Punto de entrada y orquestación
 ├── bin/            # Archivos compilados (.class)
 ├── domain/         # Entidades del dominio
 │   ├── enums/      # Enumeraciones (Rol, EstadoInsumo, TipoMovimiento)
@@ -135,6 +138,8 @@ clinica-horizonte/
 5. **Factory Pattern**: Inicialización centralizada de servicios
 6. **Transaction Manager Pattern**: Gestión centralizada de transacciones
 7. **DAO Pattern**: Data Access Object en repositorios JDBC
+8. **Handler Pattern**: Separación de responsabilidades por dominio funcional
+9. **Separation of Concerns**: Separación clara entre presentación, lógica y persistencia
 
 ## Requisitos del Sistema
 

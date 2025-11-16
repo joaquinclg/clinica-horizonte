@@ -17,7 +17,7 @@ public class ConsoleUI {
         System.out.print(prompt);
         return Integer.parseInt(scanner.nextLine());
       } catch (NumberFormatException nfe) {
-        System.out.println("Debe ingresar un número. Intente nuevamente.");
+        System.out.println("Debe ingresar un número válido. Intente nuevamente.");
       }
     }
   }
@@ -27,6 +27,13 @@ public class ConsoleUI {
    */
   public static String leerString(String prompt) {
     System.out.print(prompt);
+    return scanner.nextLine();
+  }
+
+  /**
+   * Lee una cadena de la consola (sin mostrar prompt)
+   */
+  public static String leerStringSilencioso() {
     return scanner.nextLine();
   }
 
@@ -41,7 +48,7 @@ public class ConsoleUI {
    * Muestra un mensaje de éxito
    */
   public static void mostrarExito(String mensaje) {
-    System.out.println("✓ " + mensaje);
+    System.out.println(mensaje);
   }
 
   /**
@@ -49,6 +56,13 @@ public class ConsoleUI {
    */
   public static void mostrarInfo(String mensaje) {
     System.out.println(mensaje);
+  }
+
+  /**
+   * Muestra un mensaje con formato printf
+   */
+  public static void mostrarFormato(String formato, Object... args) {
+    System.out.printf(formato, args);
   }
 
   /**
