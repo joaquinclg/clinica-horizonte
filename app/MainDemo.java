@@ -111,21 +111,27 @@ public class MainDemo {
             manejarAltaUsuario(usuarioLogueado);
             break;
           case 3:
-            manejarIngresoInsumo(usuarioLogueado);
+            manejarModificarUsuario(usuarioLogueado);
             break;
           case 4:
-            manejarEgresoInsumo(usuarioLogueado);
+            manejarBajaUsuario(usuarioLogueado);
             break;
           case 5:
-            manejarListarInsumos();
+            manejarIngresoInsumo(usuarioLogueado);
             break;
           case 6:
-            manejarListarCriticos();
+            manejarEgresoInsumo(usuarioLogueado);
             break;
           case 7:
-            manejarReporteMovimientos();
+            manejarListarInsumos();
             break;
           case 8:
+            manejarListarCriticos();
+            break;
+          case 9:
+            manejarReporteMovimientos();
+            break;
+          case 10:
             usuarioLogueado = null;
             System.out.println("Sesión cerrada.");
             break;
@@ -180,12 +186,14 @@ public class MainDemo {
     System.out.println("\n== Menú Principal ==");
     System.out.println("1) Listar usuarios (ADMIN)");
     System.out.println("2) Alta usuario (ADMIN)");
-    System.out.println("3) Ingreso de insumo");
-    System.out.println("4) Egreso de insumo");
-    System.out.println("5) Listar todos los insumos");
-    System.out.println("6) Listar insumos críticos");
-    System.out.println("7) Reporte de movimientos");
-    System.out.println("8) Logout");
+    System.out.println("3) Modificar usuario (ADMIN)");
+    System.out.println("4) Baja usuario (ADMIN)");
+    System.out.println("5) Ingreso de insumo");
+    System.out.println("6) Egreso de insumo");
+    System.out.println("7) Listar todos los insumos");
+    System.out.println("8) Listar insumos críticos");
+    System.out.println("9) Reporte de movimientos");
+    System.out.println("10) Logout");
     System.out.println("0) Salir");
   }
 
@@ -234,6 +242,137 @@ public class MainDemo {
     Usuario nuevoUsuario = new Usuario(legajo, password, nombre, apellido, rol);
     userService.alta(nuevoUsuario);
     System.out.println("Usuario creado exitosamente.");
+  }
+
+  /**
+   * Maneja la opción de modificar un usuario existente (solo ADMIN)
+   */
+  private static void manejarModificarUsuario(Usuario actor) {
+    if (actor.getRol() != Rol.ADMIN) {
+      System.out.println("Acceso denegado: Solo usuarios ADMIN pueden modificar usuarios.");
+      return;
+    }
+    
+    System.out.println("\n-- Modificar Usuario --");
+    
+    int legajo = leerEntero("Legajo del usuario a modificar: ");
+    
+    // Buscar el usuario existente (activo o inactivo)
+    Usuario usuarioExistente;
+    try {
+      usuarioExistente = userService.obtenerPorLegajo(legajo);
+    } catch (EntidadNoEncontradaException e) {
+      System.out.println("Error: " + e.getMessage());
+      return;
+    }
+    System.out.println("\nUsuario actual:");
+    System.out.printf("  Nombre: %s%n", usuarioExistente.getNombre());
+    System.out.printf("  Apellido: %s%n", usuarioExistente.getApellido());
+    System.out.printf("  Rol: %s%n", usuarioExistente.getRol());
+    System.out.printf("  Activo: %s%n", usuarioExistente.isActivo() ? "Sí" : "No");
+    
+    System.out.println("\nIngrese los nuevos datos (presione Enter para mantener el valor actual):");
+    
+    System.out.print("Nombre [" + usuarioExistente.getNombre() + "]: ");
+    String nombre = scanner.nextLine().trim();
+    if (nombre.isEmpty()) {
+      nombre = usuarioExistente.getNombre();
+    }
+    
+    System.out.print("Apellido [" + usuarioExistente.getApellido() + "]: ");
+    String apellido = scanner.nextLine().trim();
+    if (apellido.isEmpty()) {
+      apellido = usuarioExistente.getApellido();
+    }
+    
+    System.out.print("Password (nueva, mínimo 6 caracteres): ");
+    String password = scanner.nextLine().trim();
+    if (password.isEmpty()) {
+      password = usuarioExistente.getPassword();
+    }
+    
+    System.out.print("Rol (ADMIN/AUXILIAR) [" + usuarioExistente.getRol() + "]: ");
+    String rolStr = scanner.nextLine().trim().toUpperCase();
+    Rol rol;
+    if (rolStr.isEmpty()) {
+      rol = usuarioExistente.getRol();
+    } else {
+      rol = Rol.valueOf(rolStr);
+    }
+    
+    // Preguntar por el estado activo
+    String estadoActual = usuarioExistente.isActivo() ? "Activo" : "Inactivo";
+    System.out.print("Estado (ACTIVO/INACTIVO) [" + estadoActual + "]: ");
+    String estadoStr = scanner.nextLine().trim().toUpperCase();
+    boolean activo;
+    if (estadoStr.isEmpty()) {
+      activo = usuarioExistente.isActivo();
+    } else {
+      activo = estadoStr.equals("ACTIVO") || estadoStr.equals("A");
+    }
+    
+    // Crear usuario actualizado
+    Usuario usuarioActualizado = new Usuario(legajo, password, nombre, apellido, rol);
+    
+    // Aplicar el estado activo/inactivo
+    if (activo) {
+      usuarioActualizado.activar();
+    } else {
+      usuarioActualizado.desactivar();
+    }
+    
+    userService.editar(usuarioActualizado);
+    System.out.println("Usuario modificado exitosamente.");
+  }
+
+  /**
+   * Maneja la opción de dar de baja lógica a un usuario (solo ADMIN)
+   */
+  private static void manejarBajaUsuario(Usuario actor) {
+    if (actor.getRol() != Rol.ADMIN) {
+      System.out.println("Acceso denegado: Solo usuarios ADMIN pueden dar de baja usuarios.");
+      return;
+    }
+    
+    System.out.println("\n-- Baja de Usuario --");
+    
+    int legajo = leerEntero("Legajo del usuario a dar de baja: ");
+    
+    // Validar que no se esté dando de baja a sí mismo
+    if (actor.getLegajo() == legajo) {
+      System.out.println("Error: No puedes darte de baja a ti mismo. Otro administrador debe realizar esta operación.");
+      return;
+    }
+    
+    // Verificar que el usuario existe
+    Usuario usuario;
+    try {
+      usuario = userService.obtenerPorLegajo(legajo);
+    } catch (EntidadNoEncontradaException e) {
+      System.out.println("Error: " + e.getMessage());
+      return;
+    }
+    
+    // Verificar que esté activo
+    if (!usuario.isActivo()) {
+      System.out.println("Error: El usuario ya está inactivo.");
+      return;
+    }
+    System.out.println("\nUsuario a dar de baja:");
+    System.out.printf("  Legajo: %d%n", usuario.getLegajo());
+    System.out.printf("  Nombre: %s %s%n", usuario.getNombre(), usuario.getApellido());
+    System.out.printf("  Rol: %s%n", usuario.getRol());
+    
+    System.out.print("\n¿Está seguro de dar de baja a este usuario? (s/n): ");
+    String confirmacion = scanner.nextLine().trim().toLowerCase();
+    
+    if (!confirmacion.equals("s") && !confirmacion.equals("si")) {
+      System.out.println("Operación cancelada.");
+      return;
+    }
+    
+    userService.bajaLogica(legajo);
+    System.out.println("Usuario dado de baja exitosamente.");
   }
 
   /**

@@ -106,8 +106,9 @@ clinica-horizonte/
 ### Seguridad y Control de Acceso
 
 - Sistema de login con validación de credenciales
-- Bloqueo de cuenta tras 3 intentos fallidos
 - Control de acceso por roles (ADMIN / AUXILIAR)
+- Gestión completa de usuarios (alta, modificación, baja lógica)
+- Validación de seguridad: un usuario no puede darse de baja a sí mismo
 - Baja lógica de usuarios (no se eliminan físicamente)
 
 ### Gestión de Stock
@@ -246,12 +247,14 @@ Password: admin123
 == Menú Principal ==
 1) Listar usuarios (ADMIN)
 2) Alta usuario (ADMIN)
-3) Ingreso de insumo
-4) Egreso de insumo
-5) Listar todos los insumos
-6) Listar insumos críticos
-7) Reporte de movimientos
-8) Logout
+3) Modificar usuario (ADMIN)
+4) Baja usuario (ADMIN)
+5) Ingreso de insumo
+6) Egreso de insumo
+7) Listar todos los insumos
+8) Listar insumos críticos
+9) Reporte de movimientos
+10) Logout
 0) Salir
 ```
 

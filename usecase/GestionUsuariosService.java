@@ -66,6 +66,16 @@ public class GestionUsuariosService {
   }
 
   /**
+   * Obtiene un usuario por su legajo (activo o inactivo)
+   * 
+   * @throws EntidadNoEncontradaException si el usuario no existe
+   */
+  public Usuario obtenerPorLegajo(int legajo) {
+    return usuarios.findByLegajo(legajo)
+        .orElseThrow(() -> new EntidadNoEncontradaException("Usuario no encontrado: " + legajo));
+  }
+
+  /**
    * Valida los datos de un usuario
    * 
    * @throws IllegalArgumentException si los datos son inválidos
